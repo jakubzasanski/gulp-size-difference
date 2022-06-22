@@ -1,6 +1,6 @@
 {
   "name": "gulp-size-difference",
-  "version": "0.5.0",
+  "version": "1.0.0",
   "description": "Display files size difference between before and after point of pipeline stream. Designed for measuring efficiency minifying tools like uglify or cssnano.\n",
   "type": "module",
   "main": "index.js",
