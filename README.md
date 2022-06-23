@@ -21,41 +21,35 @@ $ npm install --save-dev gulp-size-difference
 ## Usage
 
 ```js
-import sizeDiff from 'gulp-size-difference';
+import sizeDifference from 'gulp-size-difference';
 
 gulp.src(currentPaths.development.js + "**/*.js")
   .pipe(plumber({
     errorHandler: errorHandler
   }))
-  .pipe(sizeDiff.start())
+  .pipe(sizeDifference.start())
   .pipe(uglify())
-  .pipe(sizeDiff.stop({title: `JS ${group}`}))
+  .pipe(sizeDifference.stop({title: `JS ${group}`}))
   .pipe(rename({"suffix": ".min"}))
   .pipe(gulp.dest(currentPaths.production.js))
   .on("end", _ => {
     callback();
    });
-});
+
 ```
  
 ## Standard output
 
 ```
 [00:00:00] Starting 'post-js'...
-[00:00:00] JS example1.js ~ saved 116 B (39%)
-[00:00:00] JS example2.js ~ saved 0 B (0%)
+[00:00:00] JS example1.js (saved 116 B - 39%)
+[00:00:00] JS example2.js (saved 0 B - 0%)
 [00:00:00] Finished 'post-js' after 72 ms
 ```
 
 ```
 [00:00:00] Starting 'post-js'...
-[00:00:00] JS all files
-Files count: 2
-Initial size: 190 B
-Final size: 74 B
-Difference bytes: 116 B
-Difference percent: 39%
-Compression ratio: 0.61
+[00:00:00] JS all files (saved 4.83 kB - 41.8%)
 [00:00:00] Finished 'post-js' after 74 ms
 ```
 
@@ -90,13 +84,13 @@ Default: 'formatData()'
 Customise the output of this by using the format function. An example:
 
 ```js
-function formatData(title = '', file = '', data = {}, options = {}) {
+const formatDiff = (title = '', file = '', data = {}, isFile = false) => {
     title = title ? chalk.cyan(title) : title;
     file = file ? ' ' + chalk.green(file) : file;
 
     let message = `${title}${file}`;
 
-    if (options.allFiles) {
+    if (isFile) {
         message += chalk.white(` ~ saved ${prettyBytes(data.diffBytes)} (${Math.round(data.diffPercent * 100)}%)`);
     } else {
         const stats = [
@@ -114,6 +108,41 @@ function formatData(title = '', file = '', data = {}, options = {}) {
 
     log(message);
 }
+
+import sizeDifference from 'gulp-size-difference';
+
+gulp.src(currentPaths.development.js + "**/*.js")
+    .pipe(plumber({
+        errorHandler: errorHandler
+    }))
+    .pipe(sizeDifference.start())
+    .pipe(uglify())
+    .pipe(sizeDifference.stop({title: `JS ${group}`, customFormat: formatDiff}))
+    .pipe(rename({"suffix": ".min"}))
+    .pipe(gulp.dest(currentPaths.production.js))
+    .on("end", _ => {
+        callback();
+    });
+
+```
+
+```
+[00:00:00] Starting 'post-js'...
+[00:00:00] JS example1.js ~ saved 116 B (39%)
+[00:00:00] JS example2.js ~ saved 0 B (0%)
+[00:00:00] Finished 'post-js' after 72 ms
+```
+
+```
+[00:00:00] Starting 'post-js'...
+[00:00:00] JS all files
+Files count: 2
+Initial size: 190 B
+Final size: 74 B
+Difference bytes: 116 B
+Difference percent: 39%
+Compression ratio: 0.61
+[00:00:00] Finished 'post-js' after 74 ms
 ```
 
 ###### title
@@ -135,6 +164,9 @@ Difference data object
 * Initial size: data.initialSize
 * Final size: data.finalSize
 * Difference bytes: data.diffBytes
+* Pretty initial size: data.prettyInitialSize
+* Pretty final size: data.prettyFinalSize
+* Pretty difference bytes: data.prettyDiffBytes
 * Difference percent: data.diffPercent
 * Compression ratio: data.compressionRatio
 

@@ -1,6 +1,6 @@
 /**
  * @author Jakub Zasański <jakub.zasanski.dev@gmail.com>
- * @version 1.0.0
+ * @version 1.1.0
  */
 
 // #####################################################################################################################
@@ -74,10 +74,13 @@ sizeDifference.stop = (options = {}) => {
         if (options.allFiles === true) {
             file.diffStats.filesCount = 1;
             file.diffStats.diffBytes = file.diffStats.initialSize - file.diffStats.finalSize;
-            file.diffStats.diffPercent = (file.diffStats.finalSize !== 0 && file.diffStats.initialSize !== 0) ? file.diffStats.finalSize / file.diffStats.initialSize : 0;
+            file.diffStats.diffPercent = ((file.diffStats.finalSize !== 0 && file.diffStats.initialSize !== 0) ? ((file.diffStats.finalSize / file.diffStats.initialSize) * 100).toFixed(1) : 0) + '%';
             file.diffStats.compressionRatio = (file.diffStats.diffBytes !== 0 && file.diffStats.initialSize !== 0) ? file.diffStats.diffBytes / file.diffStats.initialSize : 0;
+            file.diffStats.prettyInitialSize = prettyBytes(file.diffStats.initialSize);
+            file.diffStats.prettyFinalSize = prettyBytes(file.diffStats.finalSize);
+            file.diffStats.prettyDiffBytes = prettyBytes(file.diffStats.diffBytes);
 
-            formatDataFunction(options.title, file.relative, file.diffStats, options);
+            formatDataFunction(options.title, file.relative, file.diffStats, true);
         }
 
         diffStats.filesCount++;
@@ -91,38 +94,22 @@ sizeDifference.stop = (options = {}) => {
         }
 
         diffStats.diffBytes = diffStats.initialSize - diffStats.finalSize;
-        diffStats.diffPercent = (diffStats.finalSize !== 0 && diffStats.initialSize !== 0) ? diffStats.finalSize / diffStats.initialSize : 0;
-        diffStats.compressionRatio = (diffStats.diffBytes !== 0 && diffStats.initialSize !== 0) ? diffStats.diffBytes / diffStats.initialSize : 0;
+        diffStats.diffPercent = ((diffStats.finalSize !== 0 && diffStats.initialSize !== 0) ? (((diffStats.finalSize / diffStats.initialSize) + Number.EPSILON) * 100).toFixed(1) : 0) + '%';
+        diffStats.compressionRatio = (diffStats.diffBytes !== 0 && diffStats.initialSize !== 0) ? (diffStats.diffBytes / diffStats.initialSize).toFixed(2) : 0;
+        diffStats.prettyInitialSize = prettyBytes(diffStats.initialSize);
+        diffStats.prettyFinalSize = prettyBytes(diffStats.finalSize);
+        diffStats.prettyDiffBytes = prettyBytes(diffStats.diffBytes);
 
-        formatDataFunction(options.title, 'all files', diffStats, options);
+        formatDataFunction(options.title, 'all files', diffStats, false);
 
         callback();
     });
 };
 
 function formatData(title = '', file = '', data = {}, options = {}) {
-    title = title ? chalk.cyan(title) : title;
-    file = file ? ' ' + chalk.green(file) : file;
-
-    let message = `${title}${file}`;
-
-    if (options.allFiles) {
-        message += chalk.white(` ~ saved ${prettyBytes(data.diffBytes)} (${Math.round(data.diffPercent * 100)}%)`);
-    } else {
-        const stats = [
-            `Files count: ${data.filesCount}`,
-            `Initial size: ${prettyBytes(data.initialSize)}`,
-            `Final size: ${prettyBytes(data.finalSize)}`,
-            `Difference bytes: ${prettyBytes(data.diffBytes)}`,
-            `Difference percent: ${Math.round(data.diffPercent * 100)}%`,
-            `Compression ratio: ${data.compressionRatio.toFixed(2)}`
-        ];
-        stats.forEach(filePath => {
-            message += chalk.white(`\n\r${filePath}`);
-        });
-    }
-
-    log(message);
+    title = title ? chalk.cyan(title) + ' ' : title;
+    file = file ? chalk.green(file) + ' ' : file;
+    log(`${title}${file}${chalk.gray(`(saved ${data.prettyDiffBytes} - ${data.diffPercent})`)}`);
 }
 
 export default sizeDifference;
