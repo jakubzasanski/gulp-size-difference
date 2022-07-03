@@ -53,11 +53,11 @@ gulp.src(currentPaths.development.js + "**/*.js")
 [00:00:00] Finished 'post-js' after 74 ms
 ```
 
-### sizeDiff.start() or sizeDiff()
+### sizeDifference.start() or sizeDiff()
 
 Creates a new property on the file object that saves its current size.
 
-### sizeDiff.stop(options)
+### sizeDifference.stop(options)
 
 Counts and outputs the difference between saved size and the current filesize.
 
