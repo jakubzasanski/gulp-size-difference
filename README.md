@@ -175,8 +175,3 @@ Type: `Object`
 
 Passed options object for detecting output mode.
 
----
-
-Like my work? Buy me a beer! 🍺
-
-[![Donate](https://img.shields.io/badge/Donate-PayPal-blue.svg)](https://www.paypal.com/donate/?hosted_button_id=KWNT5X4DUL2AY)
