@@ -2,12 +2,9 @@
 
 Display files size difference between before and after point of pipeline stream. Designed for measuring efficiency minifying tools like uglify or cssnano.
 
-
 ![version](https://img.shields.io/github/v/tag/jakubzasanski/gulp-size-difference?label=version)
 ![license](https://img.shields.io/github/license/jakubzasanski/gulp-size-difference)
 
-
-This package was created for my other project [disco-gulp](https://github.com/jakubzasanski/disco-gulp) look here for full examples.
 Based on [gulp-sizediff](https://github.com/SkeLLLa/gulp-sizediff) but provides more flexible output, and some refactoring to modern JS
 
 
