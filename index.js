@@ -1,117 +1,99 @@
 /**
  * @author Jakub Zasański <jakub.zasanski.dev@gmail.com>
- * @version 1.1.0
+ * @version 2.0.0
  */
 
-// #####################################################################################################################
-
-import log from 'fancy-log';
 import chalk from 'chalk';
 import prettyBytes from 'pretty-bytes';
 import PluginError from 'plugin-error';
-import {Transform} from "node:stream";
+import { Transform } from "node:stream";
 
-// #####################################################################################################################
+const PLUGIN_NAME = 'gulp-size-difference';
 
-const transformStream = (transform, flush) => new Transform({transform, flush, objectMode: true, highWaterMark: 16});
+const log = (msg) => {
+    const time = new Date().toLocaleTimeString(undefined, { hour12: false });
+    console.log(`[${chalk.gray(time)}] ${msg}`);
+};
 
-/**
- *
- * @returns {module:stream.internal.Transform}
- */
+const getFileSize = (file) => file.contents?.length ?? file.stats?.size ?? 0;
+
+const calculateStats = (initial, final) => {
+    const diffBytes = initial - final;
+    const diffPercent = initial > 0 ? ((final / initial) * 100).toFixed(1) : 0;
+    const compressionRatio = initial > 0 ? (diffBytes / initial).toFixed(2) : 0;
+
+    return {
+        initialSize: initial,
+        finalSize: final,
+        diffBytes,
+        diffPercent: `${diffPercent}%`,
+        compressionRatio,
+        prettyInitialSize: prettyBytes(initial),
+        prettyFinalSize: prettyBytes(final),
+        prettyDiffBytes: prettyBytes(diffBytes),
+    };
+};
+
+const createTransform = (transform, flush) =>
+    new Transform({ transform, flush, objectMode: true, highWaterMark: 16 });
+
 function sizeDifference() {
-    return transformStream((file, encoding, callback) => {
-        if (file.isNull()) {
-            callback(null, file);
-            return;
-        }
+    return createTransform((file, enc, cb) => {
+        if (file.isNull()) return cb(null, file);
+        if (file.isStream()) return cb(new PluginError(PLUGIN_NAME, 'Streaming not supported'));
 
-        if (file.isStream()) {
-            callback(new PluginError('gulp-size-difference', 'Streaming not supported'));
-            return;
-        }
-
-        file.diffStats = {
-            initialSize: file.contents && file.contents.length || file.stats && file.stats.size || 0
-        };
-
-        callback(null, file)
+        file.diffStats = { initialSize: getFileSize(file) };
+        cb(null, file);
     });
 }
 
 sizeDifference.start = sizeDifference;
 
 sizeDifference.stop = (options = {}) => {
-    const formatDataFunction = (options.customFormat && typeof options.customFormat === 'function') ? options.customFormat : formatData;
-    options.allFiles = options.allFiles || false;
+    const {
+        singleFiles = false,
+        title = 'Optimizer',
+        customOutput = defaultOutput
+    } = options;
 
-    const diffStats = {
-        filesCount: 0,
-        initialSize: 0,
-        finalSize: 0,
-        diffBytes: 0,
-        diffPercent: 0,
-        compressionRatio: 0
-    };
+    const totals = { filesCount: 0, initialSize: 0, finalSize: 0 };
 
-    return transformStream((file, encoding, callback) => {
+    return createTransform(
+        (file, enc, cb) => {
+            if (file.isNull()) return cb(null, file);
+            if (file.isStream()) return cb(new PluginError(PLUGIN_NAME, 'Streaming not supported'));
 
-        if (file.isNull()) {
-            callback(null, file);
-            return;
+            const initial = file.diffStats?.initialSize ?? getFileSize(file);
+            const final = getFileSize(file);
+
+            totals.initialSize += initial;
+            totals.finalSize += final;
+            totals.filesCount++;
+
+            if (singleFiles) {
+                const stats = calculateStats(initial, final);
+                customOutput(title, file.relative, stats);
+            }
+
+            cb(null, file);
+        },
+        (cb) => {
+            if (!singleFiles && totals.filesCount > 0) {
+                const stats = calculateStats(totals.initialSize, totals.finalSize);
+                stats.filesCount = totals.filesCount;
+                customOutput(title, 'all files', stats);
+            }
+            cb();
         }
-
-        if (file.isStream()) {
-            callback(new PluginError('gulp-size-difference', 'Streaming not supported'));
-            return;
-        }
-
-        file.diffStats.finalSize = file.contents && file.contents.length || file.stats && file.stats.size || 0;
-
-        diffStats.initialSize += file.diffStats.initialSize;
-        diffStats.finalSize += file.diffStats.finalSize;
-
-        if (options.allFiles === true) {
-            file.diffStats.filesCount = 1;
-            file.diffStats.diffBytes = file.diffStats.initialSize - file.diffStats.finalSize;
-            file.diffStats.diffPercent = ((file.diffStats.finalSize !== 0 && file.diffStats.initialSize !== 0) ? ((file.diffStats.finalSize / file.diffStats.initialSize) * 100).toFixed(1) : 0) + '%';
-            file.diffStats.compressionRatio = (file.diffStats.diffBytes !== 0 && file.diffStats.initialSize !== 0) ? file.diffStats.diffBytes / file.diffStats.initialSize : 0;
-            file.diffStats.prettyInitialSize = prettyBytes(file.diffStats.initialSize);
-            file.diffStats.prettyFinalSize = prettyBytes(file.diffStats.finalSize);
-            file.diffStats.prettyDiffBytes = prettyBytes(file.diffStats.diffBytes);
-
-            formatDataFunction(options.title, file.relative, file.diffStats, true);
-        }
-
-        diffStats.filesCount++;
-        callback(null, file);
-
-    }, (callback) => {
-
-        if (options.allFiles === true) {
-            callback();
-            return;
-        }
-
-        diffStats.diffBytes = diffStats.initialSize - diffStats.finalSize;
-        diffStats.diffPercent = ((diffStats.finalSize !== 0 && diffStats.initialSize !== 0) ? (((diffStats.finalSize / diffStats.initialSize) + Number.EPSILON) * 100).toFixed(1) : 0) + '%';
-        diffStats.compressionRatio = (diffStats.diffBytes !== 0 && diffStats.initialSize !== 0) ? (diffStats.diffBytes / diffStats.initialSize).toFixed(2) : 0;
-        diffStats.prettyInitialSize = prettyBytes(diffStats.initialSize);
-        diffStats.prettyFinalSize = prettyBytes(diffStats.finalSize);
-        diffStats.prettyDiffBytes = prettyBytes(diffStats.diffBytes);
-
-        formatDataFunction(options.title, 'all files', diffStats, false);
-
-        callback();
-    });
+    );
 };
 
-function formatData(title = '', file = '', data = {}, options = {}) {
-    title = title ? chalk.cyan(title) + ' ' : title;
-    file = file ? chalk.green(file) + ' ' : file;
-    log(`${title}${file}${chalk.gray(`(saved ${data.prettyDiffBytes} - ${data.diffPercent})`)}`);
+function defaultOutput(title, label, data) {
+    const prefix = title ? `${chalk.cyan(title)} ` : '';
+    const subject = label ? `${chalk.green(label)} ` : '';
+    const details = chalk.gray(`(saved ${data.prettyDiffBytes} - ${data.diffPercent})`);
+
+    log(`${prefix}${subject}${details}`);
 }
 
 export default sizeDifference;
-
-// EOF

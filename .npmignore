@@ -1,2 +1,8 @@
-##### [IDE] ############################################################################################################
 /.idea/
+node_modules/
+.gitignore
+.nvmrc
+CHANGELOG.md
+demo.js
+package-lock.json
+
