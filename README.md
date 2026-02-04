@@ -67,16 +67,17 @@ Default: ''
 
 Give it a title so it's possible to distinguish the output of multiple instances logging at once.
 
-#### allFiles
+#### singleFiles
 
 Type: `boolean`  
 Default: `false`
 
 Run formatData for every file instead of just the total size diff.
 
-#### customFormat
+#### customOutput
+
 Type: `function`  
-Default: 'formatData()'
+Default: 'defaultOutput()'
 
 Customise the output of this by using the format function. An example:
 
@@ -114,7 +115,7 @@ gulp.src(currentPaths.development.js + "**/*.js")
     }))
     .pipe(sizeDifference.start())
     .pipe(uglify())
-    .pipe(sizeDifference.stop({title: `JS ${group}`, customFormat: formatDiff}))
+    .pipe(sizeDifference.stop({title: `JS ${group}`, customOutput: formatDiff}))
     .pipe(rename({"suffix": ".min"}))
     .pipe(gulp.dest(currentPaths.production.js))
     .on("end", _ => {
